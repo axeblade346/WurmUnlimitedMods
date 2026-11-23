@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Java builds (release jars are attached to GitHub Releases, not kept in the repository)
+build/
+*.class
+*.jar
+
+# WOM-Viewer build
+WOM-Viewer/node_modules/
+WOM-Viewer/wom_viewer.html
+wom_viewer_settings.json
+
+# Work folders the tools make
+*_obj/
+*_upscaled/
+textures_upscaled/
+realesrgan/

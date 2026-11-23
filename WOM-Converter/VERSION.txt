@@ -1,0 +1,104 @@
+WOM Converter for Wurm Unlimited 7.9 (2026-11-22)
+
+Changes
+7.9  Viewer: dyes keep the texture detail and give the dye's true colour (paint mask and armour);
+     Metal look panel (15 metals); colour boxes for barding, saddle, bridle and saddle bags;
+     realistic highlights (on by default, "classic" in the Model panel); clean see-through edges on
+     hair and leaves (no dark rims).
+7.8  Several GPUs: built-in GPUs (Intel UHD/Iris/Arc Graphics, Radeon 680M-890M) are recognised and
+     get 1 image at a time; --gpu-jobs takes one count per GPU (e.g. 4,1); NVIDIA video memory is
+     matched to the right card when other GPUs are present.
+7.7  CPU side: detects P-cores and E-cores (Windows, Linux, Mac). Default workers = all threads - 1,
+     up to 16 (was cores - 1, up to 8). --cpu-cores p keeps the workers on the P-cores.
+7.6  Upscaling on several GPUs: --gpu-id 0,1 or --gpu-id all (upscale and batch) shares the pictures
+     between them, each with its own images-at-once from its own free video memory.
+7.5  README: "Getting started" (install Python, open a command window, one install/update command).
+     GPU upscaling on AMD Radeon and Intel Arc: video memory read from Windows (any card) or amdgpu,
+     so the images-at-once count fits those cards; setup-gpu tests the engine and lists the GPUs;
+     new "gpu-check" command.
+7.4  README and viewer credits updated (BDEW permission note from the WU Modding Discord; viewer
+     interface credit). README: hair slot advice (replace an existing slot) and dye notes.
+     Viewer launcher moved to wom_viewer.py (plain Python, no packages); WOM-Viewer.zip = viewer only.
+7.3  Viewer: Export panel (.png picture, .gif and .avi of the playing animation, 3 loops, frame by
+     frame). Panels remember open/closed. "WOM Viewer.bat" starts it with graphics.jar: Steam, else
+     the jar used last time, else a one-time file picker (kept in wom_viewer_settings.json). In
+     Chrome/Edge the page reloads the remembered jar by itself when the browser allows it.
+7.2  Viewer: eyes look forward (the pupil goes to the eye shape's opening, as in the game's own
+     composed faces). Upscaled/edited face pieces (nose, chin, eye shape, brows, complexion) get the
+     same colour change as the head under them, so they no longer show as pale patches. Helmets use
+     the worn model from "<key>.equipped" (e.g. chain_coif_head.wom), not the item lying on the ground.
+7.1  Viewer: custom hair .obj (no .womdata.json) modelled around NullHelmet no longer drops to the
+     floor (the "exported on the body" check now uses the file's own coordinates). A custom object
+     folder's own mappings.txt is used (e.g. hair6.female = femaleHair07_new.wom).
+7.0  Viewer faces: nose, chin, eye shape, eyebrows and complexion at the game's places (found from
+     textures/DefaultLoad); men's facial hair: stubble on the face plus the beard meshes
+     (facialHair2-7Mesh), in the hair colour. Rings on the middle finger and new bracelet slots,
+     placed with player/accessories/properties.xml. Earring slots only for custom earrings.
+6.9  Viewer: header is now "Open game's .jar files", "Open custom folder" (reads .obj with .mtl and
+     .womdata.json, listed as (CF)), "Upscale folder" (the 4096 texture choice) and "Custom object"
+     (new hairs, rings, earrings by name). The mappings.txt button is gone: found in the .jar and the
+     custom folder. Compare: each side picks its files and texture size. Face fixed: head type with
+     ears, eye white + iris under the eye opening, eye shape on top, Default/HOTS eye colours;
+     hairline removed. Helmet models found through mappings.txt (head no longer vanishes). Neck,
+     belt, two rings and two earrings slots. Settings kept per object with a Default button.
+     Animations no longer flash the T pose at the loop end, and aren't in the Files list.
+     "python wom_tool.py viewer" finds graphics.jar through Steam and opens the viewer with it.
+6.8  Viewer: reads graphics.jar while still zipped ("Open .jar…", or pick the game folder and its
+     packs/*.jar are used; zip64 supported). Extra folders now stack (last added wins), and a .wom
+     at the same path as a game file replaces it. "Compare" splits the view: game files only on the
+     left, with extra folders on the right, as a wipe or side by side, with the same camera, lights,
+     outfit and animation.
+6.7  Viewer: spotlights and suns can be aimed with Turn and Tilt (or the arrow keys), with an aim line
+     and an "Aim at model" button. Wider RGB boxes in the lighting panel.
+6.6  Viewer: "Lighting (photo studio)" panel. Up to 8 lights (bulb, spotlight, sun), each with on/off,
+     shadow, RGB or hue/saturation/luminance colour, brightness, range, inner/outer angle, and a
+     position around the model. Keys move the open light. Ambient, background, floor, tone mapping
+     and ready-made setups. Default is one white light. Light markers are hidden in screenshots.
+6.5  Viewer: "Dye (paint mask)" panel for transports. Reads <mask> and <meshMask> from
+     properties.xml (caravel_pm, cog_pm, corbita_pm, knarr_pm, ss_pm, cart_m, gm_m). Yellow in the
+     mask = main / wood dye, blue = cloth dye, each as 0-255 RGB, with strength and two blend modes.
+     Armour dye per outfit slot (a colour layer over that piece only).
+6.4  Viewer: "Mount gear" panel for horses, hell horses and unicorns (barding with chain metals,
+     saddle, bags, Christmas sack, bridle, horseshoes with metals; plain mount by default;
+     choosable body under barding). Normal maps found by name (<texture>_n) like the game, with
+     on/off and flip-green options. Tested with the horse and dog folders.
+6.3  Upscaling: GPU results are checked against the original and damaged ones (e.g. half black after
+     a GPU reset) are redone automatically; new --repair redoes only damaged textures in a finished
+     folder; time-left estimate weighted by texture size; progress line no longer wraps in Windows
+     consoles (the blank lines).
+6.2  Faster upscaling: one GPU run per batch, several images on the GPU at once (sized to free video
+     memory, --gpu-jobs), finishing/DDS compression on several CPU cores (--cpu-jobs), finished
+     textures skipped so stopped runs resume (--redo), automatic retry with 1 image if video memory
+     runs out, CPU fallback if the GPU engine can't run. New file: womfast.py.
+     Viewer: "Extra folder…": its textures replace the game's (e.g. textures_upscaled, player_obj),
+     its models can be opened and used as Hair / Head to compare new hair with the game's.
+6.1  Viewer: hair now hangs from the NullHelmet bone (was the Head bone: 10.6 cm too low); helmets
+     use the <offsetToNull> position/rotation from properties.xml (were ~15 cm too high); new
+     "Hair fit" option; fixed an error when an outfit item was missing from armor.xml.
+     Converter: wom2obj --attach-to BODY.wom shows hair/helmets on the body's head in Blender and
+     obj2wom moves them back; batch does this automatically for hair/ and helms/ folders.
+     The female_1_04 sample files are no longer included in the zip.
+6.0  New: wom_viewer.html, a browser model viewer that reads your own game folder (no install,
+     works offline). Skinned models and animations (properties.xml), mappings.txt item variants,
+     player outfits from armor.xml layered like the game (nude, under-clothes, armour areas),
+     face slots, hair slots, helmets on NullHelmet, screenshots and composed-texture export.
+     Interface and viewing port inspired by DeedPlanner 3.
+     wom_tool.py viewer opens it. Viewer source and build script in viewer/.
+5.1  Progress display for every long step: what it is working on, a bar, count, elapsed time and
+     time left, plus the percentage inside big single jobs (AI texture tiles, GPU upscale, animation
+     frames). When output goes to a log file it prints a line per step and every 10 s while busy.
+     New file: womprogress.py.
+     README and scripts now refer to Wurm Unlimited only; credits to BDEW and CodeClubAB added.
+     batch now copies EVERY file of the folder (all textures in all resolution folders, xml, txt...)
+     into _obj with the same layout (converted with --png, upscaled with --upscale); .mtl/.glb point
+     at those copies instead of loose duplicates next to each .obj.
+5.0  mappings.txt support: matching lines for your folder (mappings_matched.txt, mappings_missing.txt,
+     _mappings.txt per folder), texture/material variants as <model>__<item>.obj/.mtl.
+     mappings.txt is picked up automatically when it sits next to wom_tool.py.
+4.0  AI texture upscaling (GPU via realesrgan-ncnn-vulkan, CPU fallback), DDS in/DDS out with mipmaps,
+     resolution-tier mode (256/512/1024/2048), colour-safe and strength options.
+     Bone weights for edited/new meshes are blended from the closest point on the original surface.
+3.0  Whole-folder conversion (batch / batch-back), texture lookup by name across the folder,
+     character .glb files built from properties.xml.
+2.0  Animation files: .wom animations <-> glTF (.glb) for Blender.
+1.0  .wom <-> .obj with skeleton and skin weights kept (.womdata.json sidecar).

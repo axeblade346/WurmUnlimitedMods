@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WOM Viewer for Wurm Unlimited</title>
+<style>
+:root { --bg:#1f2329; --panel:#272c34; --line:#363c46; --text:#dfe3ea; --dim:#9aa3b2; --acc:#d9a441; --acc2:#6fb3d2; }
+* { box-sizing: border-box; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { display:grid; grid-template-rows: auto 1fr; grid-template-columns: 300px 1fr 330px; grid-template-areas: "top top top" "left view right"; }
+header { grid-area:top; display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; padding:6px 12px; min-height:44px; background:#171a1f; border-bottom:1px solid var(--line); }
+header h1 { font-size:14px; margin:0 8px 0 0; font-weight:600; letter-spacing:.2px; white-space:nowrap; }
+header h1 span { color:var(--acc); }
+header .file { position:relative; overflow:hidden; }
+header .file input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+button, .file { background:#323843; color:var(--text); border:1px solid #444c59; border-radius:6px; padding:5px 10px; font:inherit; cursor:pointer; white-space:nowrap; }
+button:hover, .file:hover { background:#3b4250; }
+#reopen-jar, .file.primary { background:var(--acc); color:#1b1b1b; border-color:var(--acc); font-weight:600; }
+#title { flex:1; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; }
+select, input[type=search] { background:#1b1f25; color:var(--text); border:1px solid #444c59; border-radius:6px; padding:4px 6px; font:inherit; }
+aside { background:var(--panel); border-right:1px solid var(--line); overflow:auto; }
+#left { grid-area:left; display:flex; flex-direction:column; overflow:hidden; }
+#right { grid-area:right; border-left:1px solid var(--line); border-right:0; padding:8px; }
+#tabs { display:flex; gap:4px; padding:8px 8px 0; }
+#tabs button { flex:1; padding:4px 0; }
+#tabs button.on { background:var(--acc2); color:#10202a; border-color:var(--acc2); font-weight:600; }
+#search { margin:8px; }
+#count { color:var(--dim); font-size:11px; padding:0 10px 4px; }
+#list { list-style:none; margin:0; padding:0 4px 8px; overflow:auto; flex:1; }
+#list li { padding:5px 8px; border-radius:5px; cursor:pointer; }
+#list li:hover { background:#313743; }
+#list li.sel { background:#3a4554; }
+#list li .s { color:var(--dim); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#list li .l { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#list li.more { color:var(--dim); cursor:default; }
+#viewport { grid-area:view; position:relative; min-width:0; min-height:0; }
+#cmp { position:absolute; inset:0; pointer-events:none; }
+#cmp-line { position:absolute; top:0; bottom:0; width:16px; margin-left:-8px; cursor:ew-resize; pointer-events:auto; }
+#cmp-line > span { position:absolute; left:7px; top:0; bottom:0; width:2px; background:var(--acc); box-shadow:0 0 6px #000a; }
+#cmp.side #cmp-line { cursor:default; }
+.cmp-tag { position:absolute; top:10px; padding:3px 9px; border-radius:6px; background:#000a; color:#fff; font-size:12px; }
+.cmp-tag.l { left:12px; } .cmp-tag.r { right:12px; }
+#cmp-msg { position:absolute; left:50%; top:46px; transform:translateX(-50%); padding:6px 12px; border-radius:6px; background:#000c; color:#fff; font-size:13px; max-width:70%; text-align:center; }
+header label, header button { white-space:nowrap; }
+#overlay-name, #folder-name { display:inline-block; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+#compare-btn.on { background:var(--acc); color:#1b1b1b; }
+#overlay-clear { padding:0 6px; margin-left:4px; }
+.quote { margin:6px 0 2px; padding:6px 10px; border-left:3px solid var(--line); color:var(--dim); font-size:12px; }
+.topbar { display:flex; align-items:center; gap:8px; margin:0 0 8px; } .topbar .kv { font-size:12px; }
+#viewport.drop::after { content:"Drop your game folder"; position:absolute; inset:12px; border:3px dashed var(--acc); border-radius:12px; display:grid; place-items:center; font-size:20px; background:#0008; }
+#view { width:100%; height:100%; display:block; }
+#status { position:absolute; left:50%; top:16px; transform:translateX(-50%); background:#111418e6; border:1px solid var(--line); border-radius:8px; padding:8px 12px; min-width:320px; }
+#status-bar { height:6px; background:#333a45; border-radius:3px; margin-top:6px; overflow:hidden; position:relative; }
+#status-bar::after { content:""; position:absolute; left:0; top:0; bottom:0; width:var(--p,0%); background:var(--acc); transition:width .15s; }
+#status-bar.indet::after { animation: ind 1.2s infinite ease-in-out; width:30%; }
+@keyframes ind { 0% { left:-30%; } 100% { left:100%; } }
+#toasts { position:absolute; right:12px; bottom:12px; display:flex; flex-direction:column; gap:6px; align-items:flex-end; pointer-events:none; }
+.toast { background:#111418ee; border:1px solid var(--line); border-radius:6px; padding:6px 10px; max-width:520px; }
+.panel { background:#2d333c; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; padding:6px 10px 8px; }
+.panel summary { cursor:pointer; font-weight:600; padding:2px 0 6px; color:#f0f2f5; }
+.row { display:flex; align-items:center; gap:8px; margin:4px 0; }
+.row > span { flex:0 0 110px; color:var(--dim); }
+.row select, .row input[type=range] { flex:1; min-width:0; }
+.row.chk > span { flex:1; color:var(--text); }
+.facerow { display:flex; align-items:center; gap:6px; } .facerow .row { flex:1; }
+.btns { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+.kv { color:var(--dim); margin-bottom:4px; } .kv b { color:var(--text); }
+.hint { color:var(--dim); font-size:12px; margin:6px 0 0; } .warn { color:#e8b46a; }
+.meshes { max-height:260px; overflow:auto; columns:2; } .meshes .row { margin:1px 0; break-inside:avoid; font-size:12px; }
+.animlist { width:100%; margin-top:6px; }
+.dyerow { margin:6px 0; } .dyepick.nomargin { margin-left:0; flex:1; min-width:0; gap:4px; } .dyepick.nomargin input.rgb { width:0; flex:1; min-width:44px; padding:2px 2px; } .dyepick.nomargin input[type=color] { width:30px; flex:0 0 30px; }
+details.sub { border-top:1px solid var(--line); margin-top:6px; padding-top:4px; } details.sub > summary { cursor:pointer; color:#e4e7ec; padding:2px 0 4px; }
+.swatch { display:inline-block; width:11px; height:11px; border-radius:50%; border:1px solid #0008; vertical-align:-1px; }
+.hslrow input[type=range] { -webkit-appearance:none; appearance:none; height:8px; border-radius:4px; }
+.hslrow input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:16px; border-radius:3px; background:#f0f2f5; border:1px solid #222; }
+.hslrow input[type=range]::-moz-range-thumb { width:12px; height:16px; border-radius:3px; background:#f0f2f5; border:1px solid #222; }
+.row .val { flex:0 0 34px; text-align:right; font-variant-numeric:tabular-nums; } .dyepick { display:flex; align-items:center; gap:6px; margin-left:22px; }
+.dyepick input[type=color] { width:38px; height:24px; padding:0; border:1px solid #444c59; background:none; border-radius:4px; }
+.dyepick input.rgb { width:52px; background:#1b1f25; color:var(--text); border:1px solid #444c59; border-radius:4px; padding:2px 4px; }
+input[type=range] { accent-color: var(--acc); width:100%; }
+#about { position:absolute; inset:40px; overflow:auto; background:#15181dF5; border:1px solid var(--line); border-radius:12px; padding:20px 26px; z-index:5; }
+#about a { color:var(--acc2); }
+#help { position:absolute; left:12px; bottom:10px; color:#7f8896; font-size:11px; pointer-events:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>WOM Viewer <span>for Wurm Unlimited</span></h1>
+  <label class="file primary" title="Pick graphics.jar from <game>/packs (you can pick the other packs too). It is read while still zipped: nothing is extracted.">Open game's .jar files<input type="file" id="open-jar" accept=".jar,.zip" multiple></label>
+  <button id="reopen-jar" class="primary" hidden title="Open the .jar you picked last time"></button>
+  <label class="file" title="Your converted or edited files, e.g. player_obj from the converter: .obj and .wom models, textures, mappings.txt or mappings_matched.txt. They replace the game's where the path matches and are marked (CF) in the list.">Open custom folder<input type="file" id="open-folder" webkitdirectory directory multiple></label>
+  <label class="file" title="The output of the upscale command (e.g. player_upscaled). Its textures are the 4096 option of the Textures menu.">Upscale folder<input type="file" id="open-upscale" webkitdirectory directory multiple></label>
+  <label class="file" title="A folder with new or replacing objects. A file named like a game file replaces it; a new hair named like the game's (e.g. NewHair/femaleHair08.obj) becomes an extra hair option.">Custom object<input type="file" id="open-overlay" webkitdirectory directory multiple></label>
+  <label id="overlay-box" hidden><input type="checkbox" id="overlay-on" checked title="Use the custom folder and custom objects"> <span id="overlay-name"></span> <button id="overlay-clear" title="Remove the custom folders, custom objects and upscale folder">✕</button></label>
+  <button id="compare-btn" title="Split view: choose what the left side shows (game .jar or custom folder, and its texture size); the right side is the normal view">Compare</button>
+  <label title="Texture size: the game's 256-2048 folders, or 4096 from your upscale folder">Textures <select id="tier"><option>256</option><option>512</option><option>1024</option><option selected>2048</option></select></label>
+  <div id="title">No folder opened</div>
+  <span id="folder-name" style="color:var(--dim)"></span>
+  <button id="about-btn">About / credits</button>
+</header>
+<aside id="left">
+  <div id="tabs"><button data-tab="files" class="on">Files</button><button data-tab="items">Items</button><button data-tab="anims">Animations</button></div>
+  <input type="search" id="search" placeholder="Search…">
+  <div id="count"></div>
+  <ul id="list"></ul>
+</aside>
+<main id="viewport">
+  <canvas id="view"></canvas>
+  <div id="status" hidden><div id="status-text"></div><div id="status-bar"></div></div>
+  <div id="toasts"></div>
+  <div id="cmp" hidden><div id="cmp-line"><span></span></div><div class="cmp-tag l">Game files</div><div class="cmp-tag r">With extra folders</div><div id="cmp-msg" hidden></div></div>
+  <div id="help">Left drag: rotate · right drag: pan · wheel: zoom · drop a folder here to open it</div>
+  <div id="about" hidden>
+    <h2>WOM Viewer for Wurm Unlimited</h2>
+    <p>Views Wurm Unlimited <code>.wom</code> models straight from your own game folder: skinned characters and creatures, animations
+      from <code>properties.xml</code>, item texture/material variants from <code>mappings.txt</code>, and player outfits, faces and hair
+      layered the way the game does it from <code>armor.xml</code> and <code>mappings.txt</code>. Nothing is uploaded: files are read
+      by your browser on your own computer. No game files are included with this viewer.</p>
+    <p>For modding Wurm Unlimited (single player or player-hosted servers).</p>
+    <h3>Tips</h3>
+    <ul>
+      <li><b>Open game's .jar files</b>: pick <code>graphics.jar</code> from <code>&lt;game&gt;/packs</code>. It is read while still zipped.</li>
+      <li><b>Open custom folder</b>: your converted or edited files (e.g. <code>player_obj</code>). Its .obj/.wom models and textures replace the game's where the path matches and are marked <b>(CF)</b> in the list. Its <code>mappings.txt</code> or <code>mappings_matched.txt</code> is used on top of the game's.</li>
+      <li><b>Upscale folder</b>: the output of <code>upscale</code>; its textures are the <b>4096</b> choice in the Textures menu.</li>
+      <li><b>Custom object</b>: new or replacing objects. A new hair named like the game's (<code>femaleHair08.obj</code>) appears in the Hair menu.</li>
+      <li><b>Compare</b>: the left side can be the game .jar or the custom folder, at its own texture size (e.g. .jar 2048 against custom + 4096).</li>
+      <li>Settings (outfit, hair, face, dyes, animation, hidden meshes) are kept for each object while you switch; <b>Default</b> at the top of the right panel resets them.</li>
+    </ul>
+    <h3>Credits</h3>
+    <ul>
+      <li><b>BDEW</b>: the updated <a href="https://github.com/bdew-wurm/WOM-Converter" target="_blank">WOM-Converter</a>, and many mods and tools at
+        <a href="https://github.com/bdew-wurm" target="_blank">github.com/bdew-wurm</a>.
+        <div class="quote">WU Modding discord 14 Nov 2026<br><br>
+        <b>bdéw</b> 17:01 (UTC+2)<br>i don't mind, you can do whatever with my code<br>
+        (mind you the code from code club doesn't have any license AFAIK, so the legal status of the whole thing is questionable)<br><br>
+        <b>Axeblade</b> 17:04 (UTC+2)<br>Thank you and ye I also saw code clubs one is missing a license. I'll work under the "as long as its for Wurm unlimited" rule.</div></li>
+      <li><b>CodeClubAB</b>: the original <a href="https://github.com/codeclubab/WOM-Converter" target="_blank">WOM-Converter</a> and Wurm itself.
+        All game models and textures are © Code Club AB.</li>
+      <li>Interface and viewing port inspired by DeedPlanner 3.</li>
+      <li><a href="https://threejs.org" target="_blank">three.js</a> (MIT licence) for 3D rendering.</li>
+    </ul>
+    <p><button onclick="document.getElementById('about').hidden=true">Close</button></p>
+  </div>
+</main>
+<aside id="right"><div id="panels"></div></aside>
+<!--IMPORTMAP-->
+<script type="module">import 'wom-app';</script>
+</body>
+</html>

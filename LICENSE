@@ -1,0 +1,53 @@
+Wurm Unlimited Mods and Tools by Axeblade
+Copyright (c) 2026 Axeblade (axeblade346). All rights reserved.
+
+This repository holds the source code of the following projects, together called "the Software":
+WU-Upscaler, WOM-Converter, WOM-Viewer, CodeNames and UserPacks.
+
+1. Using the release files
+   You may download the release files from this repository's Releases page and use them,
+   unchanged, for your own use with Wurm Unlimited: in single player, on your own server, or on
+   servers whose rules allow them.
+
+2. Everything else needs written permission first
+   Unless the author has given you permission in writing, you may not:
+   - copy, change, translate or adapt the source code, in whole or in part;
+   - use the source code, or parts of it, in other mods, tools or projects;
+   - publish, re-upload, redistribute, sublicense or sell the Software or its release files.
+     Please link to this repository instead.
+   Viewing this repository and forking it on GitHub, as GitHub's Terms of Service allow, gives no
+   other rights.
+
+3. Asking for permission
+   Contact Axeblade:
+   - axeblade346 on the Sklotopolis forums
+   - axeblade on the Wurm modding Discord
+   - an issue on this repository
+
+4. Parts made by others
+   These parts are not covered by the copyright above and keep their own licences:
+   - realesr-general-x4v3.npz and realesr-general-wdn-x4v3.npz (WU-Upscaler, WOM-Converter):
+     model weights from Real-ESRGAN, Copyright (c) 2021 Xintao Wang, BSD 3-Clause licence,
+     see REALESRGAN_LICENSE.txt in those folders.
+   - realesrgan-ncnn-vulkan (the GPU engine): not included. The tools download it from the
+     Real-ESRGAN GitHub releases (https://github.com/xinntao/Real-ESRGAN) only when you ask them to.
+     Copyright (c) 2021 Xintao Wang; it keeps its own licence.
+   - three.js and OrbitControls, built into wom_viewer.html (WOM-Viewer, WOM-Converter):
+     Copyright (c) 2010-2026 three.js authors, MIT licence, see THREEJS_LICENSE.txt.
+   - Ago's client mod loader and javassist: not included; needed to run CodeNames and UserPacks.
+
+5. Credits
+   - WOM-Converter and WOM-Viewer build on BDEW's update of the original Code Club AB .wom
+     converter (https://github.com/bdew-wurm/WOM-Converter), used with BDEW's permission.
+   - The WOM-Viewer interface is modelled on Warlander's WOM Model Viewer and DeedPlanner 3.
+
+6. Wurm Unlimited
+   Wurm Unlimited and its game files are owned by Code Club AB. This project is not made by or
+   affiliated with Code Club AB. The tools only work with game files you already have; anything
+   they make from those files (for example upscaled texture packs) contains Code Club AB's art and
+   is for your own use.
+
+7. No warranty
+   The Software is provided "as is", without warranty of any kind, express or implied. In no event
+   shall the author be liable for any claim, damages or other liability arising from the use of the
+   Software. Keep backups of your game folder and your own files.

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WU Upscaler</title>
+<style>
+  :root { --bg:#121212; --panel:#1e1e1e; --line:#333; --txt:#e0e0e0; --dim:#8a8a8a; --acc:#d9a441; --ok:#5fbf7f; --warn:#e8b33b; --bad:#e06c6c; --mono: Consolas, "Cascadia Mono", Menlo, monospace; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { position:sticky; top:0; z-index:10; background:#181818; border-bottom:1px solid var(--line); padding:10px 20px; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; max-width:1100px; margin:auto; }
+  h1 { font-size:18px; margin:0; color:var(--acc); letter-spacing:.02em; }
+  .stat { font-family:var(--mono); font-size:13px; color:var(--dim); white-space:nowrap; }
+  .stat b { color:var(--txt); font-weight:600; }
+  .meter { display:inline-block; width:46px; height:7px; background:#2a2a2a; border-radius:4px; vertical-align:middle; margin-left:4px; overflow:hidden; }
+  .meter i { display:block; height:100%; background:var(--acc); width:0; transition:width .6s; }
+  .prog { flex:1 1 100%; display:none; }
+  .prog .track { height:9px; background:#2a2a2a; border-radius:5px; overflow:hidden; }
+  .prog .track i { display:block; height:100%; width:0; background:linear-gradient(90deg,#b9822a,var(--acc)); transition:width .8s; }
+  .prog .txt { font-size:13px; color:var(--dim); margin-top:4px; font-family:var(--mono); }
+  main { max-width:1100px; margin:auto; padding:16px 20px 60px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px 18px; margin:14px 0; }
+  .card h2 { margin:0 0 12px; font-size:16px; color:var(--acc); font-weight:600; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0; }
+  .row label.k { width:150px; color:var(--dim); }
+  input[type=text], select { background:#141414; color:var(--txt); border:1px solid #3a3a3a; border-radius:5px; padding:7px 9px; font:inherit; }
+  input[type=text] { flex:1; min-width:260px; font-family:var(--mono); font-size:13px; }
+  input.small { width:7em; min-width:0; flex:none; }
+  button { background:#2b2b2b; color:var(--txt); border:1px solid #444; border-radius:5px; padding:7px 14px; font:inherit; cursor:pointer; }
+  button:hover { background:#353535; }
+  button.main { background:var(--acc); color:#1a1408; border-color:var(--acc); font-weight:600; }
+  button.main:hover { background:#e6b459; }
+  button.stop { background:#5a2323; border-color:#7a2e2e; }
+  button:disabled { opacity:.45; cursor:default; }
+  .note { color:var(--dim); font-size:13px; margin:6px 0 0; }
+  .banner { background:#33270f; border:1px solid #6b5220; color:#f0d9a0; border-radius:6px; padding:10px 14px; margin:10px 0; }
+  .banner.err { background:#3a1717; border-color:#7a2e2e; color:#f3b8b8; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); } .warnc { color:var(--warn); }
+  #console { background:#0e0e0e; border:1px solid #262626; border-radius:6px; height:46vh; overflow:auto; padding:10px 12px; font:12.5px/1.45 var(--mono); white-space:pre-wrap; color:#cfd6cf; }
+  #console .ts { color:#6f8f6f; }
+  #console .er { color:var(--bad); }
+  #console .st { color:#9ab8d8; }
+  #console .pk { color:var(--ok); }
+  .cons-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .cons-head .who { color:var(--dim); font-size:13px; flex:1; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { border:1px solid #2e2e2e; padding:5px 8px; text-align:center; }
+  th { background:#232323; color:var(--dim); font-weight:600; }
+  td.l, th.l { text-align:left; }
+  tr.top td { background:#1a1a1a; }
+  tr.sub td { color:#bdbdbd; font-size:13px; }
+  details summary { cursor:pointer; color:var(--dim); }
+  .pill { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; background:#2a2a2a; }
+  .pill.ok { background:#1e3a26; color:#8fe0a8; }
+  .muted { color:var(--dim); }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>WU Upscaler</h1>
+    <span class="stat">time <b id="s-time">–</b></span>
+    <span class="stat">CPU <b id="s-cpu">–</b><span class="meter"><i id="m-cpu"></i></span></span>
+    <span class="stat">RAM <b id="s-ram">–</b><span class="meter"><i id="m-ram"></i></span></span>
+    <span class="stat">GPU <b id="s-gpu">–</b><span class="meter"><i id="m-gpu"></i></span></span>
+    <span class="stat">VRAM <b id="s-vram">–</b><span class="meter"><i id="m-vram"></i></span></span>
+    <span class="stat" id="s-run"></span>
+    <div class="prog" id="prog"><div class="track"><i id="prog-bar"></i></div><div class="txt" id="prog-txt"></div></div>
+  </div>
+</header>
+<main>
+  <div id="first"></div>
+
+  <div class="card">
+    <h2>1. Where things are</h2>
+    <div class="row"><label class="k" for="gjar">graphics.jar</label>
+      <input type="text" id="gjar" placeholder="...\steamapps\common\Wurm Unlimited\WurmLauncher\packs\graphics.jar">
+      <button onclick="browse('file')">Browse…</button><button onclick="detect()" title="Look for Wurm Unlimited in your Steam libraries">Find in Steam</button></div>
+    <div class="row"><label class="k" for="staging">Staging folder</label>
+      <input type="text" id="staging" placeholder="a folder with plenty of free space, e.g. D:\WU Upscaler staging">
+      <button onclick="browse('dir')">Browse…</button></div>
+    <div class="row"><label class="k"></label><label><input type="checkbox" id="pmk"> also upscale <b>pmk.jar</b> (kingdom flags, banners, tents) from the same packs folder</label> <span id="pmk-state" class="note"></span></div>
+    <p class="note">The staging folder holds the extracted originals, the upscaled textures and the finished packs (in its <b>jars</b> folder). A full run needs roughly 15–25 GB.</p>
+  </div>
+
+  <div class="card">
+    <h2>2. Upscaler</h2>
+    <div class="row"><label class="k" for="engine">Engine</label>
+      <select id="engine">
+        <option value="auto">Automatic: GPU if installed, else CPU</option>
+        <option value="gpu">GPU (Real-ESRGAN, Vulkan – any NVIDIA / AMD / Intel card)</option>
+        <option value="cpu">CPU (AI, much slower)</option>
+        <option value="lanczos">Plain resize, no AI (fast test)</option>
+      </select>
+      <span id="gpu-state" class="note"></span>
+      <button onclick="post('/gpu-setup')">Install GPU engine</button><button onclick="post('/gpu-check')">Test GPU</button></div>
+    <div class="row"><label class="k">Advanced</label>
+      GPU number <input type="text" class="small" id="gpu_id" placeholder="auto">
+      images on the GPU at once <input type="text" class="small" id="gpu_jobs" placeholder="auto">
+      CPU workers <input type="text" class="small" id="cpu_jobs" placeholder="auto"></div>
+    <div class="row"><label class="k" for="keep_below">Keep as they are</label>
+      pictures smaller than <input type="text" class="small" id="keep_below" placeholder="64"> × the same in pixels (icons) <span class="note">– dye masks and the sky/sun colour tables are always kept as they are; the gui and TutorialImages folders are never upscaled</span></div>
+    <p class="note">Every texture is upscaled 2× (largest 4096×4096) and saved in its own format – .dds keeps its compression and mipmaps. Where a texture comes in 256/512/1024/2048 folders, each folder gets the real art of the one above it, and only the top one is AI-upscaled (2048 → 4096).</p>
+  </div>
+
+  <div class="card">
+    <h2>3. Packs</h2>
+    <div class="row"><button onclick="scan()">Read mappings.txt</button><button onclick="setAll(true)">Select all</button><button onclick="setAll(false)">Select none</button><span class="note" id="sel-note"></span></div>
+    <div id="packs"><p class="note">Press “Read mappings.txt” to see which packs will be made.</p></div>
+  </div>
+  <div class="card">
+    <h2>4. Run</h2>
+    <div class="row">
+      <button class="main" id="startbtn" onclick="start()">Start / Resume</button>
+      <button class="stop" id="stopbtn" onclick="stopJob()" disabled>Stop</button>
+      <button onclick="openF('jars')">Open finished packs</button>
+      <button onclick="openF('userpacks')">Open userpacks</button>
+    </div>
+    <p class="note">Stopping (or a power cut) is safe: Start / Resume checks what is already finished – half-written textures, mappings.txt and .jar files are made again – and carries on. Copy the packs you want from the <b>jars</b> folder into <b>WurmLauncher\userpacks</b>.</p>
+    <div class="cons-head"><span class="who" id="who">Console</span><label class="note"><input type="checkbox" id="follow" checked> follow</label><button onclick="clearCons()">Clear</button></div>
+    <div id="console"></div>
+  </div>
+
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let BETA = {}, S = {}, job = null, pos = 0, polling = false, sources = [], lastPlan = 0;
+
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function gbs(b) { return b == null ? '?' : (b / 1073741824).toFixed(1); }
+function mb(b) { return b ? (b / 1048576).toFixed(1) + ' MB' : ''; }
+function hms(s) { if (s == null) return ''; s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0'); }
+
+async function getJ(u) { const r = await fetch(u, {cache:'no-store'}); return r.json(); }
+async function postJ(u, b) { const r = await fetch(u, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(b || {})}); return r.json(); }
+
+// ---------- settings
+async function loadSettings() {
+  const d = await getJ('/settings'); S = d.settings;
+  $('gjar').value = S.graphics_jar || ''; $('staging').value = S.staging || ''; $('pmk').checked = !!S.pmk;
+  $('engine').value = S.engine || 'auto'; $('gpu_id').value = S.gpu_id || ''; $('gpu_jobs').value = S.gpu_jobs || ''; $('cpu_jobs').value = S.cpu_jobs || ''; $('keep_below').value = S.keep_below || 64;
+  $('pmk-state').textContent = S.graphics_jar ? (d.pmk_found ? 'found' : 'not found next to graphics.jar') : '';
+  $('gpu-state').innerHTML = d.gpu.installed ? '<span class="ok">GPU engine installed</span>' : '<span class="warnc">GPU engine not installed</span>';
+  document.title = 'WU Upscaler ' + (d.version || '');
+  BETA = d.beta || {};
+  firstRun();
+}
+async function saveSettings() {
+  const b = { graphics_jar: $('gjar').value.trim(), staging: $('staging').value.trim(), pmk: $('pmk').checked, engine: $('engine').value,
+    gpu_id: $('gpu_id').value.trim(), gpu_jobs: $('gpu_jobs').value.trim(), cpu_jobs: parseInt($('cpu_jobs').value) || 0, keep_below: parseInt($('keep_below').value) || 64 };
+  const d = await postJ('/settings', b); S = d.settings; await loadSettings(); loadPlan();
+}
+for (const id of ['gjar', 'staging', 'pmk', 'engine', 'gpu_id', 'gpu_jobs', 'cpu_jobs', 'keep_below']) $(id).addEventListener('change', saveSettings);
+
+async function firstRun() {
+  const box = $('first'); box.innerHTML = '';
+  if (!S.graphics_jar) {
+    const d = await getJ('/detect');
+    box.innerHTML += d.graphics_jar
+      ? `<div class="banner">Found Wurm Unlimited through Steam:<br><code>${esc(d.graphics_jar)}</code><br><button class="main" onclick="useJar('${esc(d.graphics_jar.replace(/\\/g, '\\\\'))}')">Use this graphics.jar</button> or choose it with Browse… below.</div>`
+      : `<div class="banner">Where is graphics.jar? It is in the <b>WurmLauncher\\packs</b> folder of the game, e.g. <code>C:\\Program Files (x86)\\Steam\\steamapps\\common\\Wurm Unlimited\\WurmLauncher\\packs\\graphics.jar</code>. Steam's copy was not found – use Browse… below.</div>`;
+  }
+  if (BETA.ok === false) box.innerHTML += `<div class="banner err"><b>Beta branch needed.</b> ${esc(BETA.text)} <button onclick="loadSettings()">Check again</button></div>`;
+  else if (BETA.ok === null && BETA.text) box.innerHTML += `<div class="banner">${esc(BETA.text)}</div>`;
+  if (!S.staging) box.innerHTML += `<div class="banner">Choose a <b>staging folder</b> (below): the work files and the finished packs go there. Use a drive with 15–25 GB free.</div>`;
+}
+function useJar(p) { $('gjar').value = p; saveSettings(); }
+async function detect() { const d = await getJ('/detect'); if (d.graphics_jar) { $('gjar').value = d.graphics_jar; saveSettings(); } else alert('Wurm Unlimited was not found in your Steam libraries:\n' + (d.libraries.join('\n') || '(no Steam libraries found)')); }
+async function browse(kind) {
+  const start = kind === 'file' ? $('gjar').value : $('staging').value;
+  const d = await getJ('/browse?kind=' + kind + '&start=' + encodeURIComponent(start));
+  if (d.path) { $(kind === 'file' ? 'gjar' : 'staging').value = d.path; saveSettings(); }
+}
+
+// ---------- console
+const cons = $('console');
+function addText(t) {
+  const frag = document.createDocumentFragment();
+  for (const line of t.split('\n')) {
+    if (!line) continue;
+    const div = document.createElement('div');
+    const m = /^(\[\d\d:\d\d:\d\d\])(.*)$/.exec(line);
+    if (m) { const s = document.createElement('span'); s.className = 'ts'; s.textContent = m[1]; div.appendChild(s); div.appendChild(document.createTextNode(m[2])); }
+    else div.textContent = line;
+    if (/!|FAILED|Error|could not/i.test(line)) div.className = 'er';
+    else if (/-- status:|== Overall/.test(line)) div.className = 'st';
+    else if (/Pack \d+\/\d+ ready/.test(line)) div.className = 'pk';
+    frag.appendChild(div);
+  }
+  cons.appendChild(frag);
+  while (cons.childNodes.length > 6000) cons.removeChild(cons.firstChild);
+  if ($('follow').checked) cons.scrollTop = cons.scrollHeight;
+}
+function clearCons() { cons.innerHTML = ''; }
+function follow(j, name) { job = j; pos = 0; $('who').textContent = name; if (!polling) poll(); }
+async function poll() {
+  if (!job) { polling = false; return; }
+  polling = true;
+  try {
+    const d = await getJ('/poll?job=' + job + '&pos=' + pos);
+    if (d.text) addText(d.text);
+    pos = d.pos;
+    if (d.done) { polling = false; job = null; loadPlan(); loadSettings(); return; }
+  } catch (e) { /* the program was closed? keep trying */ }
+  setTimeout(poll, 700);
+}
+async function post(u, b) {
+  const d = await postJ(u, b);
+  if (d.error) { addText('[' + new Date().toTimeString().slice(0, 8) + '] ! ' + d.error); return; }
+  if (d.job) { clearCons(); follow(d.job, ({'/scan': 'Reading mappings.txt', '/start': 'Upscaling', '/gpu-setup': 'Installing the GPU engine', '/gpu-check': 'Testing the GPU engine'})[u] || u); }
+}
+async function scan() { await saveSettings(); post('/scan', { replan: false }); }
+async function start() {
+  await saveSettings();
+  if (BETA.ok === false && !confirm('This game client does not support userpacks (they are in the beta branch).\n\nUpscale anyway? The packs will only work once the beta branch is installed.')) return;
+  post('/start', { anyway: BETA.ok === false });
+}
+async function stopJob() { await getJ('/stop'); }
+async function openF(w) { await getJ('/open?what=' + w); }
+
+// ---------- live stats
+function meter(id, frac) { $(id).style.width = Math.max(0, Math.min(100, (frac || 0) * 100)) + '%'; }
+async function stats() {
+  try {
+    const d = await getJ('/stats'), s = d.stats || {};
+    $('s-time').textContent = d.time;
+    $('s-cpu').textContent = s.cpu == null ? '–' : Math.round(s.cpu) + '%'; meter('m-cpu', (s.cpu || 0) / 100);
+    $('s-ram').textContent = s.ram_total ? gbs(s.ram_used) + '/' + gbs(s.ram_total) + ' GB' : '–'; meter('m-ram', s.ram_total ? s.ram_used / s.ram_total : 0);
+    $('s-gpu').textContent = s.gpu == null ? 'n/a' : Math.round(s.gpu) + '%'; meter('m-gpu', (s.gpu || 0) / 100);
+    $('s-vram').textContent = s.vram_used == null ? 'n/a' : gbs(s.vram_used) + (s.vram_total ? '/' + gbs(s.vram_total) : '') + ' GB'; meter('m-vram', s.vram_total ? s.vram_used / s.vram_total : 0);
+    $('s-run').innerHTML = d.running ? '<b class="warnc">running</b> ' + esc(d.running) + ' · ' + hms(d.elapsed) : '<span class="muted">idle</span>';
+    $('stopbtn').disabled = !d.running; $('startbtn').disabled = !!d.running;
+    if (d.running && Date.now() - lastPlan > 15000) loadPlan();   // keep the Packs list up to date while it works
+    const p = d.progress;
+    if (p && p.tex_total && (d.running || p.phase === 'finished')) {
+      $('prog').style.display = 'block';
+      const f = p.tex_done / p.tex_total;
+      $('prog-bar').style.width = (f * 100).toFixed(1) + '%';
+      $('prog-txt').textContent = `${p.source || ''}${p.source_total > 1 ? ' (' + p.source_n + '/' + p.source_total + ')' : ''}: packs ${p.packs_done}/${p.packs_total} · textures ${p.tex_done}/${p.tex_total} (${(f * 100).toFixed(1)}%)` +
+        (p.rate ? ` · ${p.rate}/hour` : '') + (p.eta ? ` · about ${hms(p.eta)} left` : '') + (p.phase && p.phase !== 'finished' ? ` · ${p.phase} ${p.current || ''}` : p.phase === 'finished' ? ' · finished' : '');
+    } else $('prog').style.display = 'none';
+  } catch (e) { $('s-run').innerHTML = '<span class="bad">lost contact with WU Upscaler – is its window still open?</span>'; }
+  setTimeout(stats, 2000);
+}
+
+// ---------- packs
+async function loadPlan() {
+  lastPlan = Date.now();
+  const open = new Set([...document.querySelectorAll('#packs details[open]')].map((x) => x.dataset.k));
+  const d = await getJ('/plan'); sources = d.sources || [];
+  const sel = new Set(S.folders || []);
+  let h = '', anyPlan = false;
+  for (const src of sources) {
+    if (!src.planned) { h += `<p class="note"><b>${esc(src.stem)}.jar</b>: not read yet – press “Read mappings.txt”.</p>`; continue; }
+    anyPlan = true;
+    const tops = {};
+    for (const p of src.packs) (tops[p.top] ||= []).push(p);
+    h += `<h3 style="margin:14px 0 6px;font-size:15px">${esc(src.stem)}.jar <span class="note">– ${src.packs.length} packs, ${src.textures} textures, read ${esc(src.made || '')}${src.notes ? ', ' + src.notes + ' missing references (as in the game)' : ''}</span></h3>`;
+    h += '<table><tr><th>make</th><th class="l">folder / pack</th><th>packs</th><th>textures</th><th>done</th><th>size</th></tr>';
+    for (const [top, list] of Object.entries(tops)) {
+      const key = (src.stem + ':' + top).toLowerCase(), done = list.filter((p) => p.done).length;
+      const tex = list.reduce((a, p) => a + p.textures, 0), size = list.reduce((a, p) => a + p.size, 0);
+      const on = !sel.size || sel.has(key);
+      h += `<tr class="top"><td><input type="checkbox" data-f="${esc(key)}" ${on ? 'checked' : ''}></td><td class="l"><details data-k="${esc(key)}" ${open.has(key) ? 'open' : ''}><summary><b>${esc(top)}/</b></summary>` +
+        `<table style="margin:6px 0">${list.map((p) => `<tr class="sub"><td class="l">${esc(p.name)}.jar</td><td class="l">${esc(p.section)}</td><td>${p.lines} lines</td><td>${p.textures} tex</td><td>${p.done ? '<span class="pill ok">done</span>' : '<span class="pill">to do</span>'}</td><td>${mb(p.size)}</td></tr>`).join('')}</table></details></td>` +
+        `<td>${list.length}</td><td>${tex}</td><td>${done === list.length ? '<span class="pill ok">all</span>' : done + '/' + list.length}</td><td>${mb(size)}</td></tr>`;
+    }
+    h += '</table>';
+  }
+  $('packs').innerHTML = h || '<p class="note">Press “Read mappings.txt” to see which packs will be made.</p>';
+  $('sel-note').textContent = anyPlan ? (sel.size ? sel.size + ' folder(s) selected' : 'all folders selected') : '';
+}
+$('packs').addEventListener('change', async (e) => {
+  if (!e.target.dataset.f) return;
+  const all = [...document.querySelectorAll('[data-f]')], on = all.filter((x) => x.checked).map((x) => x.dataset.f);
+  await postJ('/settings', { folders: on.length === all.length ? [] : on }); S = (await getJ('/settings')).settings; loadPlan();
+});
+async function setAll(v) {
+  const all = [...document.querySelectorAll('[data-f]')];
+  if (!v && !confirm('Select none? Then tick the folders you want.')) return;
+  await postJ('/settings', { folders: v ? [] : ['none:none'] }); S = (await getJ('/settings')).settings; loadPlan();
+}
+
+// ---------- start up
+(async () => {
+  await loadSettings(); loadPlan(); stats();
+  const c = await getJ('/current');
+  if (c.job && !c.done) follow(c.job, c.name);
+})();
+</script>
+</body>
+</html>
